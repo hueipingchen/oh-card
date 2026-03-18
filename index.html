@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oh Card</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=Noto+Serif+TC:wght@300;400&display=swap');
+
+:root {
+  --bg:       #f0f4f8;
+  --bg2:      #e4ecf3;
+  --navy:     #1b3a5c;
+  --navy2:    #254d7a;
+  --teal:     #2a7c8a;
+  --sand:     #c8a96e;
+  --sand2:    #e8d5a8;
+  --sand3:    #f5eedc;
+  --white:    #ffffff;
+  --ink:      #1a2530;
+  --muted:    #6b8299;
+  --red:      #b83030;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Serif TC', serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* subtle wave bg */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse at 15% 85%, rgba(27,58,92,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 10%, rgba(42,124,138,0.07) 0%, transparent 55%);
+}
+
+/* ── Top bar ── */
+.top-bar {
+  position:sticky; top:0; z-index:90;
+  background:rgba(27,58,92,0.96);
+  backdrop-filter:blur(14px);
+  padding:0.6rem 1.3rem;
+  display:flex; align-items:center; justify-content:space-between; gap:0.7rem;
+  box-shadow:0 2px 20px rgba(27,58,92,0.3);
+}
+.top-title {
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem; font-style:italic; font-weight:400;
+  color:var(--sand2); letter-spacing:0.15em;
+}
+.top-right { display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; }
+
+.pill {
+  font-size:0.68rem; letter-spacing:0.12em;
+  padding:0.25rem 0.7rem; border-radius:20px;
+  border:1px solid rgba(200,169,110,0.35);
+  color:var(--sand2); background:rgba(200,169,110,0.1);
+}
+
+.btn {
+  padding:0.4rem 1.1rem; border-radius:4px;
+  font-family:'Noto Serif TC',serif;
+  font-size:0.78rem; letter-spacing:0.1em;
+  cursor:pointer; transition:all 0.22s; border:none; white-space:nowrap;
+}
+.btn-gold {
+  background:linear-gradient(135deg, var(--sand) 0%, #b8902a 100%);
+  color:var(--navy); font-weight:500;
+  box-shadow:0 2px 8px rgba(200,169,110,0.4);
+}
+.btn-gold:hover:not(:disabled) { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 4px 14px rgba(200,169,110,0.5); }
+.btn-gold:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+.btn-outline {
+  background:transparent; color:var(--sand2);
+  border:1px solid rgba(200,169,110,0.35);
+}
+.btn-outline:hover { background:rgba(200,169,110,0.1); border-color:var(--sand); }
+
+/* ── Steps ── */
+.steps-bar {
+  position:relative; z-index:10;
+  display:flex; justify-content:center; align-items:center; gap:0;
+  padding:0.65rem 1rem;
+}
+.step-item { display:flex; align-items:center; gap:0.35rem; }
+.step-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--bg2); border:1.5px solid var(--muted);
+  transition:all 0.35s;
+}
+.step-dot.active { background:var(--sand); border-color:var(--sand); box-shadow:0 0 0 3px rgba(200,169,110,0.2); }
+.step-dot.done   { background:var(--teal); border-color:var(--teal); }
+.step-txt { font-size:0.67rem; color:var(--muted); letter-spacing:0.1em; }
+.step-txt.active { color:var(--sand); }
+.step-txt.done   { color:var(--teal); }
+.step-line { width:24px; height:1px; background:rgba(107,130,153,0.3); margin:0 0.25rem; }
+
+/* ── Section label ── */
+.section-label {
+  text-align:center; position:relative; z-index:10;
+  font-family:'Cormorant Garamond',serif;
+  font-size:0.78rem; font-style:italic; letter-spacing:0.25em;
+  padding:0.3rem 0 0.1rem;
+}
+.section-label.img-lbl  { color:var(--teal); }
+.section-label.word-lbl { color:var(--sand); }
+.section-label .badge { font-size:0.58rem; font-style:normal; margin-left:0.4rem; }
+
+/* ── Fan ── */
+.fan-wrap { position:relative; z-index:10; width:100%; display:flex; justify-content:center; overflow:visible; }
+.fan-container { position:relative; }
+
+.fan-card {
+  position:absolute; transform-origin:bottom center;
+  cursor:pointer; transition:filter 0.18s;
+  will-change:transform;
+}
+.fan-card:not(.flipped):not(.disabled):hover { z-index:99!important; filter:brightness(1.15); }
+.fan-card.disabled { cursor:not-allowed; }
+.fan-card.disabled .card-back-face { opacity:0.35; }
+
+/* pull-out + flip animation */
+@keyframes pullFlip {
+  0%   { transform:var(--bt) translateY(0)    scale(1)    rotateY(0deg); }
+  25%  { transform:var(--bt) translateY(-32px) scale(1.1)  rotateY(0deg); }
+  60%  { transform:var(--bt) translateY(-20px) scale(1.06) rotateY(90deg); }
+  100% { transform:var(--bt) translateY(0)    scale(1)    rotateY(180deg); }
+}
+.fan-card.flipping { animation:pullFlip 0.7s cubic-bezier(0.4,0,0.2,1) forwards; z-index:200!important; }
+.fan-card.flipped .card-inner { transform:rotateY(180deg); }
+
+.card-inner { width:100%; height:100%; transform-style:preserve-3d; border-radius:6px; position:relative; }
+.card-face { position:absolute; inset:0; border-radius:6px; backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden; }
+
+/* ── Image card back ── */
+.img-back {
+  background:linear-gradient(160deg, var(--navy2) 0%, var(--navy) 100%);
+  border:1px solid rgba(200,169,110,0.25);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 12px rgba(27,58,92,0.45), inset 0 0 0 1px rgba(200,169,110,0.06);
+}
+.img-back-inner {
+  width:76%; height:82%;
+  border:1px solid rgba(200,169,110,0.2);
+  border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(200,169,110,0.04) 4px,rgba(200,169,110,0.05) 5px);
+}
+.fan-card:not(.flipped):not(.disabled):hover .img-back {
+  box-shadow:0 0 20px rgba(200,169,110,0.3), inset 0 0 0 1px rgba(200,169,110,0.25);
+}
+
+/* ── Word card back ── */
+.word-back {
+  background:linear-gradient(160deg, #b8902a 0%, var(--sand) 60%, #a07828 100%);
+  border:1px solid rgba(255,255,255,0.15);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 3px 12px rgba(180,140,40,0.35), inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.word-back-inner {
+  width:76%; height:82%;
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.05) 4px,rgba(255,255,255,0.06) 5px);
+}
+.fan-card:not(.flipped):not(.disabled):hover .word-back {
+  box-shadow:0 0 20px rgba(200,169,110,0.4), inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+
+.back-glyph { font-size:0.8rem; color:rgba(255,255,255,0.25); font-family:'Cormorant Garamond',serif; font-style:italic; }
+
+/* ── Card fronts ── */
+.card-front { transform:rotateY(180deg); background:#fff; border:1.5px solid var(--sand); box-shadow:0 4px 16px rgba(27,58,92,0.18); }
+.card-front img { width:100%; height:100%; object-fit:contain; display:block; background:#fafafa; }
+.card-front.word-face { background:var(--sand3); border-color:var(--sand); display:flex; align-items:center; justify-content:center; }
+.word-glyph { font-family:'Noto Serif TC',serif; font-size:clamp(0.5rem,1.7vw,0.85rem); color:var(--ink); text-align:center; letter-spacing:0.06em; }
+
+/* ── Divider ── */
+.deck-divider { display:flex; align-items:center; justify-content:center; gap:0.7rem; padding:0.4rem 2rem; position:relative; z-index:10; }
+.div-line { flex:1; height:1px; background:linear-gradient(to right,transparent,rgba(27,58,92,0.2),transparent); }
+.div-orn { color:var(--muted); font-size:0.65rem; letter-spacing:0.4em; }
+
+/* ── COMBINED CARD (overlay) ── */
+.overlay {
+  display:none; position:fixed; inset:0; z-index:300;
+  align-items:center; justify-content:center;
+  flex-direction:column; gap:1rem; padding:1.5rem;
+}
+.overlay.show { display:flex; }
+.overlay-bg { position:absolute; inset:0; background:rgba(15,25,40,0.88); backdrop-filter:blur(8px); }
+.overlay-content { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:1rem; }
+
+/* The stacked combo — two cards slightly offset, looks like a deck */
+.combo-stack {
+  position:relative;
+  cursor:pointer;
+  width:clamp(130px,28vw,210px);
+  aspect-ratio:2/3;
+}
+
+/* Shadow card behind */
+.combo-shadow {
+  position:absolute;
+  top:-6px; left:6px;
+  width:100%; height:100%;
+  border-radius:10px;
+  background:linear-gradient(160deg, var(--sand) 0%, #a07828 100%);
+  border:1px solid rgba(255,255,255,0.15);
+  box-shadow:0 6px 24px rgba(0,0,0,0.4);
+}
+
+/* Front card (navy - image card back) */
+.combo-front {
+  position:absolute; inset:0;
+  border-radius:10px;
+  background:linear-gradient(160deg, var(--navy2) 0%, var(--navy) 100%);
+  border:1px solid rgba(200,169,110,0.3);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  transition:transform 0.25s;
+}
+.combo-front:hover { transform:scale(1.03); }
+.combo-front-inner {
+  width:72%; height:78%;
+  border:1px solid rgba(200,169,110,0.2);
+  border-radius:5px;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.4rem;
+  background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(200,169,110,0.04) 5px,rgba(200,169,110,0.05) 6px);
+}
+.combo-hint { font-size:0.65rem; color:rgba(200,169,110,0.6); letter-spacing:0.2em; font-family:'Cormorant Garamond',serif; font-style:italic; margin-top:0.3rem; }
+.combo-glyph { font-size:1.5rem; color:rgba(200,169,110,0.35); font-family:'Cormorant Garamond',serif; }
+
+/* Flip animation for combo */
+.combo-stack.reveal-anim {
+  animation: comboFlip 0.8s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+@keyframes comboFlip {
+  0%   { transform:scale(1)    rotateY(0deg); }
+  30%  { transform:scale(1.08) rotateY(0deg) translateY(-12px); }
+  100% { transform:scale(1)    rotateY(0deg); }
+}
+
+/* Result card */
+.result-card {
+  position:relative;
+  background:#fff;
+  border-radius:12px;
+  padding:40px 32px 34px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,169,110,0.2);
+  animation:riseIn 0.55s cubic-bezier(0.34,1.4,0.64,1) forwards;
+  display:none;
+}
+.result-card.show { display:block; }
+@keyframes riseIn { from{transform:scale(0.88) translateY(20px);opacity:0;} to{transform:scale(1) translateY(0);opacity:1;} }
+
+.rc-word {
+  position:absolute; font-family:'Noto Serif TC',serif;
+  font-size:clamp(0.82rem,2vw,1.1rem); color:var(--ink);
+  letter-spacing:0.12em; font-weight:400;
+}
+.rc-top    { top:9px;   left:50%; transform:translateX(-50%); white-space:nowrap; }
+.rc-bottom { bottom:8px; left:50%; transform:translateX(-50%); white-space:nowrap; }
+.rc-left   { left:8px;  top:50%; transform:translateY(-50%); writing-mode:vertical-rl; }
+.rc-right  { right:8px; top:50%; transform:translateY(-50%) rotate(180deg); writing-mode:vertical-rl; }
+.rc-img-wrap { border-radius:5px; overflow:hidden; border:3px solid var(--red); width:clamp(120px,26vw,200px); aspect-ratio:2/3; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+.rc-img-wrap img { width:100%; height:100%; object-fit:contain; display:block; background:#fafafa; }
+
+/* Actions */
+.action-panel {
+  background:rgba(240,244,248,0.97);
+  border-radius:10px; padding:0.9rem 1.3rem;
+  display:flex; flex-direction:column; align-items:center; gap:0.6rem;
+  min-width:270px; max-width:340px;
+  box-shadow:0 8px 30px rgba(0,0,0,0.25); border:1px solid rgba(27,58,92,0.12);
+}
+.action-q { font-size:0.74rem; color:var(--muted); letter-spacing:0.12em; }
+.action-row { display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; }
+
+.btn-navy { background:var(--navy); color:var(--sand2); box-shadow:0 2px 8px rgba(27,58,92,0.3); }
+.btn-navy:hover { background:var(--navy2); transform:translateY(-1px); }
+
+@media(max-width:480px){
+  .top-bar { padding:0.5rem 0.8rem; }
+  .result-card { padding:32px 22px 26px; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-title">Oh Card</div>
+  <div class="top-right">
+    <div class="pill" id="statusPill">請各選一張牌</div>
+    <button class="btn btn-gold" id="revealBtn" disabled onclick="showCombo()">翻開牌 ✦</button>
+    <button class="btn btn-outline" onclick="resetAll()">重新洗牌</button>
+  </div>
+</div>
+
+<div class="steps-bar">
+  <div class="step-item"><div class="step-dot active" id="d1"></div><span class="step-txt active" id="t1">選圖卡</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-dot" id="d2"></div><span class="step-txt" id="t2">選字卡</span></div>
+  <div class="step-line"></div>
+  <div class="step-item"><div class="step-dot" id="d3"></div><span class="step-txt" id="t3">翻開</span></div>
+</div>
+
+<div class="section-label img-lbl" id="imgLabel">圖 卡</div>
+<div class="fan-wrap"><div class="fan-container" id="imgFan"></div></div>
+
+<div class="deck-divider">
+  <div class="div-line"></div>
+  <div class="div-orn">· · ·</div>
+  <div class="div-line"></div>
+</div>
+
+<div class="section-label word-lbl" id="wordLabel">字 卡</div>
+<div class="fan-wrap"><div class="fan-container" id="wordFan"></div></div>
+<div style="height:1.5rem"></div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-bg"></div>
+  <div class="overlay-content" id="overlayContent">
+
+    <!-- Step A: stacked combo (before flip) -->
+    <div id="comboStack">
+      <div class="combo-stack" id="theCombo" onclick="flipCombo()">
+        <div class="combo-shadow"></div>
+        <div class="combo-front">
+          <div class="combo-front-inner">
+            <div class="combo-glyph">✦</div>
+            <div class="combo-hint">點我翻開</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:0.6rem;font-size:0.7rem;color:rgba(200,169,110,0.6);letter-spacing:0.2em;font-family:'Cormorant Garamond',serif;font-style:italic;">你的牌已抽出</div>
+    </div>
+
+    <!-- Step B: result card (after flip) -->
+    <div class="result-card" id="resultCard">
+      <div class="rc-word rc-top"    id="rcTop"></div>
+      <div class="rc-word rc-left"   id="rcLeft"></div>
+      <div class="rc-img-wrap"><img id="rcImg" src="" alt=""></div>
+      <div class="rc-word rc-right"  id="rcRight"></div>
+      <div class="rc-word rc-bottom" id="rcBottom"></div>
+    </div>
+
+    <div class="action-panel" id="actionPanel" style="display:none;">
+      <div class="action-q">繼續抽下一組？</div>
+      <div class="action-row">
+        <button class="btn btn-outline" onclick="continueWith(true)">放回牌堆繼續</button>
+        <button class="btn btn-outline" onclick="continueWith(false)">移除繼續</button>
+      </div>
+      <button class="btn btn-navy" onclick="resetAll()">重新洗牌</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const IMAGE_IDS=[
+  '1p6TZe_4t5BIUz787AIBJi8bm_5_AdpOp','18tp8Lmf2ilYQ-0YJmLA0F0awbP_BZVAQ',
+  '1ZOZInwgR9rBfCVRahRy3lgTv0gnlHpjo','1lAQouDBgp6Lbn1JOynU8uoU0bFY4XYKS',
+  '1kqnY0kck1VGL-wRpIbCOhYWDNt2A4_KQ','1odNdsfNRAVOlgSJZfYFNT9_pQ-pzGA1b',
+  '1YP4kYcIdJV9_QUjqAY8whs93XQS2yxgf','1VwThpd8rh4hgDqEoED8gPOUrWna_FZc-',
+  '1kJaApAOBckPrjV8hq3gGvZZODIg0Y5CN','1up9DAMQ1Kol6oXEnab24kMl8Y0hIGFhU',
+  '1qgcTVupzML9-EgWoSTc_vVR0Sfdci2kC','1c4510JEu4VxXFK-YJR3SqqXZSJUsOOr1',
+  '1PnWZVBbZ0ayDj_UZ5tjTXAmk_hTZEN-s','1AIBsJhoOjUWRCbSi_KkQMg3pv7-LYgwO',
+  '1mT_OthJqGdz2vYqh4TEEheAhtOvx6Tnm','1ei8CgVV7DprnCSxt4JihuFNxdPNB7OFF',
+  '1zAfHqnAuKduAIWcBqnKJF-_TqlTote7N','1K25lIrtVYK3V7yol6cWxYGP5E8euuoS9',
+  '1nr8VE9ULldgNH4UP7-QwHmuR-gQwqkWy','1wYMpeN1fH1zKY2GkEk_xw4Hj-GFrtz4b',
+  '1mOYJx-K12Eg-nM290fvwbsiZRXAwzi_s','1swvE_o82jToFo-oSO50MoPcwI8dR7eYe',
+  '1Le2MoknwLPfqcPAWiERmuSZ6TobG9-89','124e_n0YmCcRZK6A2RUoFd-4jkOXYhwZs',
+  '1qHGtQtI43ABw_dWc6SEZIkaQ1rvgzSLn','14rHe_Tr2iz1Uy1YTOUT7iYnK0itPBF3Z',
+  '1AWAuLXozNHfpmp1Xp3aVBiu_wyydve8z','1ugyDT880kd23GNYgdLGuBM0QdgPZ197M',
+  '1JDCmB9e9Z1RiRluZ-8mPsprpCnEfNmnn','1-Ey9vG3-zH_GxEQ1Gjpo4Qp58tZVpqu-',
+  '1fjHaceF4_F_d7qj5Jhu5fvRQh_ep3z92','1FkJAx_BsO3AHU2MdcZ7tezmuQtzOM1OZ',
+  '1vkeE6_l45ivu3yhS2zmSxEgdQWq_LsiS','1_IUo0tFADQon8WVHCDzGseEfFob9dOEz',
+  '12jPGV3lqhLUbehgw2tNQz7C7-wkEuzM8','146rFSQcEOXrGzHUI4og4IJHZbJrJvF1R',
+  '1Gw7IjV7or_mcRoyMKERCCZwwKEPiy1fl','1yg2k-0IkbcegN8C8TpRQDiCE9gBP7Fzr',
+  '1COmDfhUcAcHRKsfSSVFgC8tI6PNCc22f','1AjLapV4iO8pRdHKntQkg2owIxyT-Ro9n',
+  '1Oa2y49gSPGiOx4O6Gl-0ReGenpg1Cu_V','1pC0CTKTuTWyPfjYXWLXzTjfW3H8j8C-f',
+  '1L1m1hZFhFgtF9bLr_hp3ASN2zGbScuHy','1slSXVnjP-VctPDdKGHSZcqVtj-ecgK8M',
+  '1Ba1UPulpGChCy3WpIVBu_VEsug5PNuEN','1EID-hwZ5jRTPKz42row2T5yWgKXFm9fw',
+  '1O1VhnfS-mLdHtoMgBtinhBQgWxFcW23K','17oxXG7CMHavpvjmkkZdGcbEuVLKQnoT3',
+  '1O6DZ4-iUhAxXExJFEefWq3jwcM2cpYEK','1KnEPbLW3dHy5eUeUGSXJITi2cYP_LyLc',
+  '197UdziN1lpJ8paDOWC7RjpP3oZ7Bb--b','1Ppp_OHlk0ISr7GWfkk0IeovfjH2S80c7',
+  '1P9KkoDY-hlRp_f-BeWlCAj0ATOFNXVNx','19rfbmWmIzKA-yny5jx8Il_1SJftUyY2u',
+  '16lmgTvTuwaD1nf6iQq5WTL3JYDBRvGDg','143jMf841AxA6RUsdMNAQaeqOWP5Cn401',
+  '1jFv9ZMrM6pQAv0y2iQxorTDKtAT1f2uh','1c-OEhgEJW0KC2qulpM6uBUaKJP4VrRut',
+  '1Zc6o9E-Bxri1lHQsueeqzDjBYPwv2IMb','1k4d9iCeYg3YjzWIy2DVserWTNpp8nDLa',
+  '1wEabW_Nhp52wg41c1zoCCaRZDwqZb0vt','19TMeFdXqOtlA_o_2LiNL9WIIrOXUppNa',
+  '1v4UJxTXxbd4zmDcGUIrfxLRWc5eafmb8','1Y1OBYFR1aQaFjYSVhG-im4_OiLjOPjHI',
+  '1_6UMxQeGxKC408YhIwYL3iOWcn-F-hC5','1Zzzg5bActwnj5Uy5wEwLjbJPVYVuLeg-',
+  '1Hnsbp6UW8bE4qehFgRrAAAu6o4tUnUrB','1Aym54HJZ9tYnNh7Q4NimsnabRlC75kdY',
+  '1MxvH27iw3yuwHEmIdA1rHLRxyVIlgHJr','1hNCwWs906kLkZontL0deM1AjuX559OQf',
+  '10bm27vxbL4AHG8arsRG5u5MPCzX736KR','1l2soSiiH_YGR94xe80nbm3PhMXBhSxOI',
+  '1pxIKS1LbRvkc7dmICZn9IdwcKTdn3j5Q','1icISkEPQ3mbl2PKaUiA3-nR417MsdWdp',
+  '13pGe6U4myLmEc2La6rSCG3EBoRwA8CXM','1KOEmSrmEFdhhPcMK2CehI_dH98X4w80R',
+  '1wy-puKfrJwgeV3mn53N7ZhuKD-soxZat','1gBa-lZxf656qSLdsec-jncgi6hYKziRp',
+  '1tW9p4RhzeMWqaZapzPTxmYD_zWlcjILJ','1HJUgCKoVvviiEq1aLHcks8wwFq7B-bD-',
+  '1jA0e-CKgL9w0FPSTmFEA1ZuOyx0SVWu9','1MZHER8mTIJzJWHTImxQJirDsigVA7eRQ',
+  '1-Q_tQpEpmajPD-PyB93K4eeyRswjoxL1','103mKAx9Z1tdjMQ2jsVAlnwS_oRJ9ZzSA',
+  '1ITH-zoYjOxkyk6bO14v6LjuinxQWy_KV','1-9gNm7-jaJrJMW6mR-3HVm34wpY4d_ja',
+  '18er1lQaDXm8lnUsjgPTxrlBeJVwXNm2L','1aRM6Nocr_XAkuAHclRs7GpH5paB7OlZl',
+];
+const WORDS=[
+  '感情','違背','危險','奇妙','羞愧','孩童','男性','厭煩','前進','錯誤',
+  '誇贊','女人','應該','歡笑','母親','姿態','權利遊戲','希望','專家','罪惡感',
+  '游戲','夢想','強迫','改變','退省','不喜歡','破壞','上司','受害者','憎恨',
+  '付出','吸引','退歉','詼諧','成功','腐朽','外表','敵對','醜陋','生氣',
+  '失敗','虧欠','丟臉','固執','尷尬','躲藏','等候','習慣','聰明','羞辱',
+  '謊言','陌生人','喜悅','恐懼','弄巧成拙','奴隸','堅定','攫取','猶豫','愚蠢',
+  '威脅','憎惡','孤獨','抗拒','攻擊','同性戀','哀傷','依賴','停止','混亂',
+  '循環','疲憊','開始','幻想','父親','家','執著','分享','放開','愛情',
+  '恐嚇','壓抑','焦慮','祼體','消除','順應','色情','痛苦',
+];
+
+const GLYPHS=['✦','✧','◈','☽','⊹','✴','⋆','◇'];
+function imgUrl(id){return`https://lh3.googleusercontent.com/d/${id}`;}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=0|Math.random()*(i+1);[b[i],b[j]]=[b[j],b[i]];}return b;}
+
+let imgPool=[],wordPool=[];
+let selImgPos=null,selWordPos=null,lastImgIdx=null,lastWordIdx=null;
+
+function buildFan(cid,pool,type){
+  const c=document.getElementById(cid);
+  c.innerHTML='';
+  const n=pool.length;
+  if(!n){c.style.cssText='width:200px;height:60px;';c.innerHTML='<div style="text-align:center;padding:1rem;color:var(--muted);font-size:0.72rem;">牌已用完</div>';return;}
+  const vw=Math.min(window.innerWidth,860);
+  const maxW=vw-20;
+  const cw=Math.max(24,Math.min(52,maxW*0.105));
+  const ch=cw*1.5;
+  const R=Math.min(maxW*0.66,400);
+  const totalDeg=Math.min(155,Math.max(55,n*2.1));
+  const half=totalDeg/2;
+  const halfR=half*Math.PI/180;
+  const cH=R-R*Math.cos(halfR)+ch+6;
+  const cW=Math.min(maxW,R*2*Math.sin(halfR)+cw+16);
+  c.style.cssText=`width:${cW}px;height:${cH}px;position:relative;`;
+  const cx=cW/2, cy=cH;
+  for(let i=0;i<n;i++){
+    const t=n===1?0:(i/(n-1))*2-1;
+    const adeg=t*half, arad=adeg*Math.PI/180;
+    const x=cx+R*Math.sin(arad)-cw/2;
+    const y=cy-R*Math.cos(arad)-ch;
+    const card=document.createElement('div');
+    card.className='fan-card';
+    card.dataset.pos=i;
+    const bt=`rotate(${adeg}deg)`;
+    card.style.cssText=`width:${cw}px;height:${ch}px;left:${x}px;top:${y}px;transform:${bt};--bt:${bt};z-index:${i<n/2?i:n-i};`;
+    const di=pool[i];
+    const src=type==='img'?imgUrl(IMAGE_IDS[di]):'';
+    const word=type==='word'?WORDS[di]:'';
+    const g=GLYPHS[i%GLYPHS.length];
+    const backClass=type==='img'?'img-back':'word-back';
+    const innerClass=type==='img'?'img-back-inner':'word-back-inner';
+    card.innerHTML=`
+      <div class="card-inner">
+        <div class="card-face ${backClass}"><div class="${innerClass}"><span class="back-glyph">${g}</span></div></div>
+        <div class="card-face card-front ${type==='word'?'word-face':''}">
+          ${type==='img'?`<img src="${src}" alt="">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;"><span class="word-glyph">${word}</span></div>`}
+        </div>
+      </div>`;
+    card.addEventListener('click',()=>onPick(card,i,type,di));
+    c.appendChild(card);
+  }
+}
+
+function onPick(card,pos,type,di){
+  if(card.classList.contains('disabled')||card.classList.contains('flipped')||card.classList.contains('flipping'))return;
+  if(type==='img'&&selImgPos!==null)return;
+  if(type==='word'&&selWordPos!==null)return;
+  card.style.setProperty('--bt',`rotate(${parseFloat(card.style.transform.replace('rotate(',''))||0}deg)`);
+  card.classList.add('flipping');
+  setTimeout(()=>{card.classList.remove('flipping');card.classList.add('flipped');},700);
+  if(type==='img'){
+    selImgPos=pos;lastImgIdx=di;
+    document.querySelectorAll('#imgFan .fan-card').forEach(c=>{if(c!==card)c.classList.add('disabled');});
+    document.getElementById('imgLabel').innerHTML='圖 卡 <span class="badge" style="color:var(--teal)">✓</span>';
+  } else {
+    selWordPos=pos;lastWordIdx=di;
+    document.querySelectorAll('#wordFan .fan-card').forEach(c=>{if(c!==card)c.classList.add('disabled');});
+    document.getElementById('wordLabel').innerHTML='字 卡 <span class="badge" style="color:var(--sand)">✓</span>';
+  }
+  updateUI();
+}
+
+function updateUI(){
+  const hi=selImgPos!==null, hw=selWordPos!==null, ok=hi&&hw;
+  const setStep=(di,ti,cls)=>{document.getElementById(di).className='step-dot '+cls;document.getElementById(ti).className='step-txt '+cls;};
+  setStep('d1','t1',hi?'done':'active');
+  setStep('d2','t2',hw?'done':(hi?'active':''));
+  setStep('d3','t3',ok?'active':'');
+  document.getElementById('revealBtn').disabled=!ok;
+  document.getElementById('statusPill').textContent=ok?'準備好了！':hi?'再選一張字卡':hw?'再選一張圖卡':'請各選一張牌';
+}
+
+function showCombo(){
+  // preload image
+  document.getElementById('rcImg').src=imgUrl(IMAGE_IDS[lastImgIdx]);
+  const w=WORDS[lastWordIdx];
+  ['rcTop','rcBottom','rcLeft','rcRight'].forEach(id=>document.getElementById(id).textContent=w);
+  // reset combo state
+  document.getElementById('comboStack').style.display='block';
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('actionPanel').style.display='none';
+  document.getElementById('theCombo').classList.remove('reveal-anim');
+  document.getElementById('overlay').classList.add('show');
+}
+
+function flipCombo(){
+  const combo=document.getElementById('theCombo');
+  combo.classList.add('reveal-anim');
+  // After short delay, swap to result
+  setTimeout(()=>{
+    document.getElementById('comboStack').style.display='none';
+    document.getElementById('resultCard').classList.add('show');
+    document.getElementById('actionPanel').style.display='flex';
+  },600);
+}
+
+function continueWith(putBack){
+  document.getElementById('overlay').classList.remove('show');
+  if(putBack){
+    imgPool.splice(0|Math.random()*imgPool.length,0,lastImgIdx);
+    wordPool.splice(0|Math.random()*wordPool.length,0,lastWordIdx);
+  } else {
+    imgPool=imgPool.filter((_,i)=>i!==selImgPos);
+    wordPool=wordPool.filter((_,i)=>i!==selWordPos);
+  }
+  selImgPos=null;selWordPos=null;lastImgIdx=null;lastWordIdx=null;
+  imgPool=shuffle(imgPool);wordPool=shuffle(wordPool);
+  document.getElementById('imgLabel').innerHTML='圖 卡';
+  document.getElementById('wordLabel').innerHTML='字 卡';
+  buildFan('imgFan',imgPool,'img');
+  buildFan('wordFan',wordPool,'word');
+  updateUI();
+}
+
+function resetAll(){
+  document.getElementById('overlay').classList.remove('show');
+  selImgPos=null;selWordPos=null;lastImgIdx=null;lastWordIdx=null;
+  imgPool=shuffle([...Array(88).keys()]);
+  wordPool=shuffle([...Array(88).keys()]);
+  document.getElementById('imgLabel').innerHTML='圖 卡';
+  document.getElementById('wordLabel').innerHTML='字 卡';
+  buildFan('imgFan',imgPool,'img');
+  buildFan('wordFan',wordPool,'word');
+  updateUI();
+}
+
+window.addEventListener('resize',()=>{buildFan('imgFan',imgPool,'img');buildFan('wordFan',wordPool,'word');});
+resetAll();
+</script>
+</body>
+</html>
